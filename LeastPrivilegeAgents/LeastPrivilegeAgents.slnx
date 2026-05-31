@@ -1,0 +1,31 @@
+<Solution>
+  <Folder Name="/McpServers/">
+    <Project Path="src/McpServers/FileReadonlyMcpServer/FileReadonlyMcpServer/FileReadonlyMcpServer.csproj" />
+    <Project Path="src/McpServers/FileWriteMcpServer/FileWriteMcpServer/FileWriteMcpServer.csproj" />
+    <Project Path="src/McpServers/AzureMcpServer/AzureMcpServer/AzureMcpServer.csproj" />
+    <Project Path="src/McpServers/AzureDevOpsMcpServer/AzureDevOpsMcpServer/AzureDevOpsMcpServer.csproj" />
+    <Project Path="src/McpServers/GitMcpServer/GitMcpServer/GitMcpServer.csproj" />
+  </Folder>
+  <Folder Name="/Agents/">
+    <Project Path="src/Agents/FileReadonlyAgent/FileReadonlyAgent/FileReadonlyAgent.csproj" />
+    <Project Path="src/Agents/FileWriteAgent/FileWriteAgent/FileWriteAgent.csproj" />
+    <Project Path="src/Agents/AzureReadonlyAgent/AzureReadonlyAgent/AzureReadonlyAgent.csproj" />
+    <Project Path="src/Agents/AzureDevOpsReadonlyAgent/AzureDevOpsReadonlyAgent/AzureDevOpsReadonlyAgent.csproj" />
+    <Project Path="src/Agents/GitCloneAgent/GitCloneAgent/GitCloneAgent.csproj" />
+  </Folder>
+  <Folder Name="/Orchestrator/">
+    <Project Path="src/Orchestrator/Orchestrator/Orchestrator.csproj" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="src/Shared/AgentShared/AgentShared.csproj" />
+  </Folder>
+  <Folder Name="/src/" />
+  <Folder Name="/src/McpServers/" />
+  <Folder Name="/src/McpServers/AzureDevOpsMcpServer/" />
+  <Folder Name="/src/McpServers/AzureMcpServer/" />
+  <Folder Name="/src/McpServers/FileReadonlyMcpServer/" />
+  <Folder Name="/src/McpServers/FileWriteMcpServer/" />
+  <Folder Name="/src/McpServers/GitMcpServer/" />
+  <Folder Name="/src/Orchestrator/" />
+  <Project Path="LeastPrivilegeAgents.AppHost/LeastPrivilegeAgents.AppHost.csproj" />
+</Solution>

@@ -1,0 +1,20 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.3.5">
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\Orchestrator\Orchestrator\Orchestrator.csproj" />
+    <ProjectReference Include="..\src\McpServers\FileReadonlyMcpServer\FileReadonlyMcpServer\FileReadonlyMcpServer.csproj" />
+    <ProjectReference Include="..\src\McpServers\FileWriteMcpServer\FileWriteMcpServer\FileWriteMcpServer.csproj" />
+    <ProjectReference Include="..\src\McpServers\AzureMcpServer\AzureMcpServer\AzureMcpServer.csproj" />
+    <ProjectReference Include="..\src\McpServers\AzureDevOpsMcpServer\AzureDevOpsMcpServer\AzureDevOpsMcpServer.csproj" />
+    <ProjectReference Include="..\src\McpServers\GitMcpServer\GitMcpServer\GitMcpServer.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>ab314bee-f7a5-4f42-ae53-b64e310542e5</UserSecretsId>
+  </PropertyGroup>
+
+</Project>

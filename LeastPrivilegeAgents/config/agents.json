@@ -1,0 +1,42 @@
+{
+  "agents": [
+    {
+      "name": "FileReadonlyAgent",
+      "mcpServer": "FileReadonlyMcpServer",
+      "mcpUrl": "http://localhost:5101",
+      "allowedTools": ["read_file", "list_directory", "file_exists"],
+      "description": "Reads files within the configured base path. No writes allowed."
+    },
+    {
+      "name": "FileWriteAgent",
+      "mcpServer": "FileWriteMcpServer",
+      "mcpUrl": "http://localhost:5102",
+      "allowedTools": ["write_file", "create_directory", "append_file"],
+      "description": "Writes files to the configured output path only. No reads or deletes."
+    },
+    {
+      "name": "AzureReadonlyAgent",
+      "mcpServer": "AzureMcpServer",
+      "mcpUrl": "http://localhost:5103",
+      "allowedTools": ["list_subscriptions", "list_resource_groups", "list_resources", "get_resource"],
+      "description": "Queries Azure resources read-only. Requires Reader RBAC on target scope.",
+      "requiredRbac": "Reader"
+    },
+    {
+      "name": "AzureDevOpsReadonlyAgent",
+      "mcpServer": "AzureDevOpsMcpServer",
+      "mcpUrl": "http://localhost:5104",
+      "allowedTools": ["list_projects", "list_repositories", "get_repository", "list_pipelines", "get_pipeline_runs", "list_work_items"],
+      "description": "Queries Azure DevOps read-only. PAT requires Code(Read), Build(Read), WorkItems(Read), Project(Read).",
+      "requiredPatScopes": ["Code (Read)", "Build (Read)", "Work Items (Read)", "Project and Team (Read)"]
+    },
+    {
+      "name": "GitCloneAgent",
+      "mcpServer": "GitMcpServer",
+      "mcpUrl": "http://localhost:5105",
+      "allowedTools": ["clone_repository", "list_branches"],
+      "description": "Clones repositories to a scoped local path. PAT requires Code(Read) only.",
+      "requiredPatScopes": ["Code (Read)"]
+    }
+  ]
+}

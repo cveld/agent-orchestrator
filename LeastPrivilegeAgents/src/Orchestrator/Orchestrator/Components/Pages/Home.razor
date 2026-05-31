@@ -1,0 +1,254 @@
+@page "/"
+@rendermode InteractiveServer
+@inject OrchestratorService Svc
+@inject IJSRuntime JS
+@implements IDisposable
+
+<div class="layout">
+
+    <!-- Header -->
+    <header class="header">
+        <span class="dot-main @(Svc.IsBusy ? "busy" : "")"></span>
+        <h1>Least Privilege Agent Framework</h1>
+        <span class="status-text">@(Svc.IsBusy ? "Bezig..." : "Gereed")</span>
+    </header>
+
+    <!-- Tab bar -->
+    <nav class="tab-bar">
+        <button class="tab @(_activeTab == "orchestrator" ? "active" : "")"
+                @onclick='() => SwitchTab("orchestrator")'>
+            🎯 Orchestrator
+        </button>
+        @foreach (var agent in AgentConfig.Agents)
+        {
+            var badge = GetBadge(agent.Id);
+            var stateCss = GetStateCss(agent.Id);
+            var isApprovalPending = Svc.PendingApprovals.Any(a => a.AgentId == agent.Id);
+            <button class="tab @(_activeTab == agent.Id ? "active" : "")"
+                    @onclick="() => SwitchTab(agent.Id)">
+                <span class="agent-dot @stateCss"></span>
+                @agent.Icon @agent.Label
+                @if (badge > 0)
+                {
+                    <span class="badge @(isApprovalPending ? "approval" : "")">
+                        @(isApprovalPending ? "!" : badge.ToString())
+                    </span>
+                }
+            </button>
+        }
+    </nav>
+
+    <!-- Content -->
+    <div class="content">
+
+        <!-- Orchestrator panel -->
+        <div class="panel @(_activeTab == "orchestrator" ? "" : "hidden")">
+            <div class="messages" id="msgs-orchestrator">
+                @if (!Svc.OrchestratorMessages.Any())
+                {
+                    <div class="empty-state">
+                        <span class="empty-icon">🎯</span>
+                        <p>Typ een taak om te beginnen</p>
+                        <p style="font-size:12px;color:#484f58">Shift+Enter voor een nieuwe regel · Enter om te versturen</p>
+                    </div>
+                }
+                @foreach (var msg in Svc.OrchestratorMessages)
+                {
+                    if (msg.Type == "user")
+                    {
+                        <div class="msg user"><div class="bubble user">@msg.Text</div></div>
+                    }
+                    else if (msg.Type == "delegation")
+                    {
+                        <div class="delegation">@msg.Text</div>
+                    }
+                    else
+                    {
+                        <div class="msg @msg.Type">
+                            <div class="bubble @msg.Type">@msg.Text</div>
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="input-area">
+                <textarea id="user-input"
+                          value="@_inputText"
+                          @oninput="e => _inputText = e.Value?.ToString() ?? string.Empty"
+                          @onkeydown="HandleKeyDown"
+                          placeholder="Beschrijf een taak voor de orchestrator... (Enter = verstuur, Shift+Enter = nieuwe regel)"
+                          rows="2"
+                          disabled="@Svc.IsBusy"></textarea>
+                <button @onclick="SendMessage"
+                        disabled="@(Svc.IsBusy || string.IsNullOrWhiteSpace(_inputText))">
+                    @(Svc.IsBusy ? "⏳" : "Verstuur")
+                </button>
+            </div>
+        </div>
+
+        <!-- Agent panels -->
+        @foreach (var agent in AgentConfig.Agents)
+        {
+            var msgs = Svc.AgentMessages.TryGetValue(agent.Id, out var m) ? m : (IList<AgentMessage>)[];
+            var currentTask = Svc.AgentCurrentTask.TryGetValue(agent.Id, out var t) ? t : null;
+            var approval = Svc.PendingApprovals.FirstOrDefault(a => a.AgentId == agent.Id);
+
+            <div class="panel @(_activeTab == agent.Id ? "" : "hidden")">
+
+                @if (currentTask != null)
+                {
+                    <div class="task-banner">
+                        <strong>Huidige taak:</strong> @currentTask
+                    </div>
+                }
+
+                @if (approval != null)
+                {
+                    <div class="approval-card">
+                        <div class="approval-header">
+                            <span>⚠️</span>
+                            <strong>Goedkeuring vereist</strong>
+                        </div>
+                        <div class="approval-agent-name">@approval.Icon @approval.Label</div>
+                        <p class="approval-desc">@approval.Description</p>
+                        <div class="approval-task-box">@approval.Task</div>
+                        <div class="approval-actions">
+                            <input class="deny-reason-input"
+                                   @bind="_denyReason"
+                                   placeholder="Reden voor weigering (optioneel)" />
+                            <button class="btn-deny" @onclick="() => Deny(approval.RequestId)">
+                                ❌ Weigeren
+                            </button>
+                            <button class="btn-approve" @onclick="() => Approve(approval.RequestId)">
+                                ✅ Goedkeuren
+                            </button>
+                        </div>
+                    </div>
+                }
+
+                <div class="messages" id="msgs-@agent.Id">
+                    @if (!msgs.Any())
+                    {
+                        <div class="empty-state">
+                            <span class="empty-icon">@agent.Icon</span>
+                            <p>Wacht op delegatie...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var msg in msgs)
+                        {
+                            <div class="agent-line @msg.Type">@msg.Text</div>
+                        }
+                    }
+                </div>
+
+            </div>
+        }
+
+    </div>
+</div>
+
+@code {
+    private string _activeTab = "orchestrator";
+    private string _inputText = "";
+    private string _denyReason = "";
+    private readonly Dictionary<string, int> _lastSeenCount = [];
+    private readonly Dictionary<string, int> _badges = [];
+
+    protected override void OnInitialized()
+    {
+        Svc.StateChanged += OnStateChanged;
+        Svc.ApprovalArrived += OnApprovalArrived;
+    }
+
+    private async void OnStateChanged()
+    {
+        UpdateBadges();
+        await InvokeAsync(StateHasChanged);
+        await ScrollActivePanel();
+    }
+
+    private async void OnApprovalArrived(string agentId)
+    {
+        await InvokeAsync(() =>
+        {
+            _activeTab = agentId;
+            StateHasChanged();
+        });
+    }
+
+    private void UpdateBadges()
+    {
+        foreach (var agent in AgentConfig.Agents)
+        {
+            if (_activeTab == agent.Id) continue;
+            var count = Svc.AgentMessages.TryGetValue(agent.Id, out var msgs) ? msgs.Count : 0;
+            var lastSeen = _lastSeenCount.TryGetValue(agent.Id, out var ls) ? ls : 0;
+            var unread = count - lastSeen;
+            // Approval requests always show a badge
+            if (Svc.PendingApprovals.Any(a => a.AgentId == agent.Id))
+                unread = Math.Max(unread, 1);
+            _badges[agent.Id] = Math.Max(0, unread);
+        }
+    }
+
+    private void SwitchTab(string tabId)
+    {
+        _activeTab = tabId;
+        if (Svc.AgentMessages.TryGetValue(tabId, out var msgs))
+            _lastSeenCount[tabId] = msgs.Count;
+        _badges[tabId] = 0;
+    }
+
+    private async Task SendMessage()
+    {
+        var msg = _inputText.Trim();
+        if (string.IsNullOrEmpty(msg) || Svc.IsBusy) return;
+        _inputText = "";
+        _ = Svc.RunAsync(msg);
+        await ScrollActivePanel();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+            await SendMessage();
+    }
+
+    private void Approve(string requestId) =>
+        _ = Svc.Respond(requestId, approved: true);
+
+    private void Deny(string requestId)
+    {
+        var reason = _denyReason.Trim();
+        _denyReason = "";
+        _ = Svc.Respond(requestId, approved: false, reason: string.IsNullOrEmpty(reason) ? null : reason);
+    }
+
+    private int GetBadge(string agentId) =>
+        _badges.TryGetValue(agentId, out var b) ? b : 0;
+
+    private string GetStateCss(string agentId) =>
+        Svc.AgentStates.TryGetValue(agentId, out var s) ? s switch
+        {
+            AgentState.Running => "running",
+            AgentState.Done => "done",
+            AgentState.Error => "error",
+            AgentState.PendingApproval => "pending",
+            _ => ""
+        } : "";
+
+    private async Task ScrollActivePanel()
+    {
+        var panelId = _activeTab == "orchestrator" ? "msgs-orchestrator" : $"msgs-{_activeTab}";
+        try { await JS.InvokeVoidAsync("scrollToBottom", panelId); }
+        catch { /* ignore if JS niet beschikbaar */ }
+    }
+
+    public void Dispose()
+    {
+        Svc.StateChanged -= OnStateChanged;
+        Svc.ApprovalArrived -= OnApprovalArrived;
+    }
+}
